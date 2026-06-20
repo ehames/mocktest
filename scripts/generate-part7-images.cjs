@@ -17,7 +17,7 @@ const buildPrompt = (scene) =>
   `Flat cartoon illustration. Clean vector style, bold outlines, bright saturated colors, ` +
   `simple expressive characters, no text or UI elements. Square format. Scene: ${scene}.`
 
-async function generateImageUrl(scene) {
+async function generateImageB64(scene) {
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -25,11 +25,10 @@ async function generateImageUrl(scene) {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt: buildPrompt(scene),
       n: 1,
       size: '1024x1024',
-      response_format: 'url',
     }),
   })
   if (!res.ok) {
@@ -37,13 +36,11 @@ async function generateImageUrl(scene) {
     throw new Error(`OpenAI API error ${res.status}: ${body}`)
   }
   const data = await res.json()
-  return data.data[0].url
+  return data.data[0].b64_json
 }
 
-async function saveAsWebP(url, destPath) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Image download failed: ${res.status}`)
-  const buffer = Buffer.from(await res.arrayBuffer())
+async function saveAsWebP(b64, destPath) {
+  const buffer = Buffer.from(b64, 'base64')
   await sharp(buffer).resize(SIZE, SIZE).webp({ quality: QUALITY }).toFile(destPath)
 }
 
@@ -68,8 +65,8 @@ async function main() {
         continue
       }
       console.log(`  gen   ${path.basename(destPath)} — "${pic.text}"`)
-      const url = await generateImageUrl(pic.text)
-      await saveAsWebP(url, destPath)
+      const b64 = await generateImageB64(pic.text)
+      await saveAsWebP(b64, destPath)
       console.log(`  saved ${path.basename(destPath)}`)
       generated++
     }
