@@ -6,7 +6,7 @@
 
 **Architecture:** `PicCard` gains a required `image` field; the active JSON bank (`schools/part7.json`) is replaced with 2 illustrated prompts; `Part7Writing` renders a scroll-snap image strip instead of keyword cards; Workbox CacheFirst handles image caching at runtime so images are not bloating the precache manifest.
 
-**Tech Stack:** React 18 + TypeScript, Vite + vite-plugin-pwa (Workbox), WebP images (512×512)
+**Tech Stack:** React 18 + TypeScript, Vite + vite-plugin-pwa (Workbox), WebP images (512×512), OpenAI DALL-E 3, sharp (image conversion)
 
 ## Global Constraints
 
@@ -16,6 +16,8 @@
 - `text` field kept as `alt` on `<img>` for accessibility
 - `LS_KEY` must be bumped to `'a2key_v2'` to clear stale localStorage sessions
 - App base path is `/mocktest/`; Workbox runtime caching pattern must match full URL
+- Image generation script requires Node 18+ (`fetch` built-in) and `OPENAI_API_KEY` env var
+- Generation script is idempotent: skips `public/images/part7/` files that already exist
 
 ---
 
@@ -26,7 +28,7 @@
 - Modify: `src/constants.ts:35`
 
 **Interfaces:**
-- Produces: `PicCard { label: string; text: string; image: string }` — consumed by Tasks 3 and 4
+- Produces: `PicCard { label: string; text: string; image: string }` — consumed by Tasks 3, 4, and 5
 
 - [ ] **Step 1: Add `image` to `PicCard` in `src/types.ts`**
 
@@ -199,52 +201,170 @@ git commit -m "feat: add CacheFirst runtime caching for part7 images"
 
 ---
 
-### Task 4: Update `Part7Writing` component to horizontal image strip
+### Task 4: Image generation script
 
 **Files:**
-- Modify: `src/components/parts/WritingPart.tsx:77-103`
-- Create: `public/images/part7/` directory with 6 pilot WebP images
+- Create: `scripts/generate-part7-images.js`
+- Modify: `package.json` (add `generate:part7-images` npm script)
 
 **Interfaces:**
-- Consumes: `PicCard { label: string; text: string; image: string }` from Task 1
-- Consumes: `Part7Prompt.pics` with `image` fields from Task 2
+- Consumes: `public/questions/schools/part7.json` — reads `pic.image` filenames and `pic.text` for prompts
+- Produces: `public/images/part7/*.webp` — consumed by Task 5 (Playwright verification)
 
-- [ ] **Step 1: Generate the 6 pilot images**
-
-Use an AI image tool (DALL-E, Midjourney, Adobe Firefly, etc.) with this prompt template:
-
-```
-Flat cartoon illustration. Clean vector style, bold outlines, bright saturated
-colors, simple expressive characters, no text or UI elements. Square format.
-Scene: [scene description below].
-```
-
-Scenes to generate:
-
-| File | Scene description |
-|------|-------------------|
-| `cafe-rain_p1.webp` | A boy leaves home on his bicycle on a sunny morning |
-| `cafe-rain_p2.webp` | It starts raining; the boy shelters at a bus stop with a friend |
-| `cafe-rain_p3.webp` | Two friends sit together in a café eating cakes and laughing |
-| `lost-dog_p1.webp`  | A boy finds a lost dog wandering alone in a park |
-| `lost-dog_p2.webp`  | A boy notices a lost-dog poster on the street |
-| `lost-dog_p3.webp`  | A boy returns the dog to its happy owner in a garden |
-
-Export each as WebP at 512×512px, quality 80. Place all 6 files in `public/images/part7/`.
+- [ ] **Step 1: Install `sharp` as a dev dependency**
 
 ```bash
-mkdir -p public/images/part7
-# Place the 6 .webp files here before continuing
-ls public/images/part7/
+npm install --save-dev sharp
+```
+
+Expected: `sharp` appears in `package.json` devDependencies. `sharp` provides native WebP encoding; it downloads a pre-built binary so no compiler needed.
+
+- [ ] **Step 2: Create `scripts/generate-part7-images.js`**
+
+```js
+#!/usr/bin/env node
+// Generates missing Part 7 illustrations using DALL-E 3.
+// Usage: OPENAI_API_KEY=sk-... npm run generate:part7-images
+// Idempotent — skips images that already exist in public/images/part7/.
+// To add new prompts: append to part7.json then re-run this script.
+
+const fs = require('fs')
+const path = require('path')
+const sharp = require('sharp')
+
+const BANK_PATH = 'public/questions/schools/part7.json'
+const OUT_DIR = 'public/images/part7'
+const SIZE = 512
+const QUALITY = 80
+
+const buildPrompt = (scene) =>
+  `Flat cartoon illustration. Clean vector style, bold outlines, bright saturated colors, ` +
+  `simple expressive characters, no text or UI elements. Square format. Scene: ${scene}.`
+
+async function generateImageUrl(scene) {
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt: buildPrompt(scene),
+      n: 1,
+      size: '1024x1024',
+      response_format: 'url',
+    }),
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`OpenAI API error ${res.status}: ${body}`)
+  }
+  const data = await res.json()
+  return data.data[0].url
+}
+
+async function saveAsWebP(url, destPath) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Image download failed: ${res.status}`)
+  const buffer = Buffer.from(await res.arrayBuffer())
+  await sharp(buffer).resize(SIZE, SIZE).webp({ quality: QUALITY }).toFile(destPath)
+}
+
+async function main() {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('Error: OPENAI_API_KEY environment variable is required')
+    process.exit(1)
+  }
+
+  const bank = JSON.parse(fs.readFileSync(BANK_PATH, 'utf8'))
+  fs.mkdirSync(OUT_DIR, { recursive: true })
+
+  let generated = 0
+  let skipped = 0
+
+  for (const prompt of bank.prompts) {
+    for (const pic of prompt.pics) {
+      const destPath = path.join(OUT_DIR, path.basename(pic.image))
+      if (fs.existsSync(destPath)) {
+        console.log(`  skip  ${path.basename(destPath)}`)
+        skipped++
+        continue
+      }
+      console.log(`  gen   ${path.basename(destPath)} — "${pic.text}"`)
+      const url = await generateImageUrl(pic.text)
+      await saveAsWebP(url, destPath)
+      console.log(`  saved ${path.basename(destPath)}`)
+      generated++
+    }
+  }
+
+  console.log(`\nDone: ${generated} generated, ${skipped} skipped.`)
+}
+
+main().catch(err => { console.error(err.message); process.exit(1) })
+```
+
+- [ ] **Step 3: Add npm script to `package.json`**
+
+In the `"scripts"` section of `package.json`, add:
+
+```json
+"generate:part7-images": "node scripts/generate-part7-images.js"
+```
+
+- [ ] **Step 4: Run the script to generate the 6 pilot images**
+
+```bash
+OPENAI_API_KEY=sk-... npm run generate:part7-images
 ```
 
 Expected output:
 ```
-cafe-rain_p1.webp  cafe-rain_p2.webp  cafe-rain_p3.webp
-lost-dog_p1.webp   lost-dog_p2.webp   lost-dog_p3.webp
+  gen   cafe-rain_p1.webp — "a boy leaves home on his bicycle on a sunny morning"
+  saved cafe-rain_p1.webp
+  gen   cafe-rain_p2.webp — "it starts raining and the boy shelters at a bus stop with a friend"
+  saved cafe-rain_p2.webp
+  gen   cafe-rain_p3.webp — "the two friends sit together in a café eating cakes and laughing"
+  saved cafe-rain_p3.webp
+  gen   lost-dog_p1.webp — "a boy finds a lost dog wandering alone in a park"
+  saved lost-dog_p1.webp
+  gen   lost-dog_p2.webp — "the boy notices a lost dog poster on the street"
+  saved lost-dog_p2.webp
+  gen   lost-dog_p3.webp — "the boy returns the dog to its happy owner in a garden"
+  saved lost-dog_p3.webp
+
+Done: 6 generated, 0 skipped.
 ```
 
-- [ ] **Step 2: Replace `Part7Writing` in `src/components/parts/WritingPart.tsx`**
+Verify files exist and are valid WebP:
+```bash
+ls -lh public/images/part7/
+file public/images/part7/*.webp
+```
+
+Expected: 6 files, each reported as `Web/P image data`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add scripts/generate-part7-images.js package.json package-lock.json public/images/part7/
+git commit -m "feat: add DALL-E 3 image generation script, generate 6 pilot Part 7 images"
+```
+
+---
+
+### Task 5: Update `Part7Writing` component to horizontal image strip
+
+**Files:**
+- Modify: `src/components/parts/WritingPart.tsx:77-103`
+
+**Interfaces:**
+- Consumes: `PicCard { label: string; text: string; image: string }` from Task 1
+- Consumes: `Part7Prompt.pics` with `image` fields from Task 2
+- Consumes: `public/images/part7/*.webp` generated by Task 4
+
+- [ ] **Step 1: Replace `Part7Writing` in `src/components/parts/WritingPart.tsx`**
 
 Replace lines 77–103 (the entire `Part7Writing` function) with:
 
@@ -314,7 +434,7 @@ export function Part7Writing({ prompt, value, review, onChange }: Part7Props) {
 }
 ```
 
-- [ ] **Step 3: Verify TypeScript and build**
+- [ ] **Step 2: Verify TypeScript and build**
 
 ```bash
 npm run build
@@ -322,7 +442,7 @@ npm run build
 
 Expected: success, no type errors.
 
-- [ ] **Step 4: Verify in browser with Playwright**
+- [ ] **Step 3: Verify in browser with Playwright**
 
 Make sure the dev server is running (`npm run dev`), then run this Node script:
 
@@ -415,9 +535,9 @@ Visually confirm in the opened browser window:
 - Horizontal swipe scrolls to Picture 2 and 3 with snap
 - Textarea and word count appear below the strip
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/parts/WritingPart.tsx public/images/part7/
+git add src/components/parts/WritingPart.tsx
 git commit -m "feat: Part 7 horizontal illustrated image strip with scroll-snap"
 ```
