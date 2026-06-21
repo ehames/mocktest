@@ -2,44 +2,74 @@
   "prompts": [
     {
       "intro": "Look at the three pictures. Write the story shown in the pictures.",
-      "character": "a 12-year-old boy with short dark hair, wearing a white school shirt, dark trousers and trainers",
+      "characters": [
+        { "name": "Tom", "description": "a boy of about 12, short dark hair, white school shirt and dark trousers" },
+        { "name": "Sam", "description": "a girl of about 12, short straight hair, blue jacket and jeans" }
+      ],
       "pics": [
         {
           "label": "Picture 1",
-          "text": "The boy rides his bicycle away from his house on a sunny morning, smiling and looking excited",
-          "image": "images/part7/cafe-rain_p1.svg"
+          "text": "bike / house / sunny",
+          "setting": "outside a house on a sunny residential street",
+          "background": "house facade with front door, garden path, bright sun in the sky",
+          "scene": "Tom stands with his bicycle in the foreground",
+          "emotion": "happy and excited",
+          "image": "images/part7/cafe-rain_p1.webp"
         },
         {
           "label": "Picture 2",
-          "text": "Heavy rain falls; the boy stands at a bus stop with a friend, both looking surprised and wet",
-          "image": "images/part7/cafe-rain_p2.svg"
+          "text": "rain / bus stop / friend",
+          "setting": "a rainy street with a bus stop",
+          "background": "bus stop shelter, street lamp, falling rain",
+          "scene": "Tom and Sam stand together at the bus stop",
+          "emotion": "Tom surprised, Sam smiling",
+          "image": "images/part7/cafe-rain_p2.webp"
         },
         {
           "label": "Picture 3",
-          "text": "The boy and his friend sit at a small café table with two mugs and a slice of cake, laughing and feeling happy",
-          "image": "images/part7/cafe-rain_p3.svg"
+          "text": "cafe / cakes / happy",
+          "setting": "inside a café",
+          "background": "café counter, window, simple wall",
+          "scene": "Tom and Sam sit at a small table with cups and a plate of cakes",
+          "emotion": "both laughing and happy",
+          "image": "images/part7/cafe-rain_p3.webp"
         }
       ],
       "minWords": 35
     },
     {
       "intro": "Look at the three pictures. Write the story shown in the pictures.",
-      "character": "a 13-year-old girl with long curly hair, wearing jeans and a green hoodie",
+      "characters": [
+        { "name": "Sofia", "description": "a girl of about 13, long curly hair, jeans and a green hoodie" },
+        { "name": "Biscuit", "description": "a small fluffy white dog with floppy ears" }
+      ],
       "pics": [
         {
           "label": "Picture 1",
-          "text": "The girl walks her small dog on a lead in a park on a sunny afternoon, looking relaxed and happy",
-          "image": "images/part7/lost-dog_p1.svg"
+          "text": "park / dog / lost",
+          "setting": "a sunny park with a path",
+          "background": "park bench, trees, green grass",
+          "scene": "Sofia walks Biscuit on a lead along the path",
+          "emotion": "relaxed and happy",
+          "image": "images/part7/lost-dog_p1.webp"
         },
         {
           "label": "Picture 2",
-          "text": "The girl stares at a lost-dog poster on a wall, looking worried and upset",
-          "image": "images/part7/lost-dog_p2.svg"
+          "text": "street / poster / worried",
+          "setting": "a street with a brick wall",
+          "background": "brick wall, street lamp, pavement",
+          "scene": "Sofia pins a lost-dog poster to the wall",
+          "emotion": "worried and upset",
+          "image": "images/part7/lost-dog_p2.webp"
         },
         {
           "label": "Picture 3",
-          "text": "The girl kneels in a garden and hugs her dog tightly, smiling with relief",
-          "image": "images/part7/lost-dog_p3.svg"
+          "text": "garden / dog / relieved",
+          "setting": "a garden with a fence",
+          "background": "garden fence, flower pots, gate",
+          "scene": "Sofia kneels down and hugs Biscuit tightly",
+          "emotion": "relieved and happy",
+          "image": "images/part7/lost-dog_p3.webp"
         }
       ],
       "minWords": 35
