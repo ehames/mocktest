@@ -97,11 +97,20 @@ export interface PicCard {
   label: string
   text: string
   image: string
+  setting?: string
+  background?: string
+  scene?: string
+  emotion?: string
+}
+
+export interface Character {
+  name: string
+  description: string
 }
 
 export interface Part7Prompt {
   intro: string
-  character: string
+  characters: Character[]
   pics: [PicCard, PicCard, PicCard]
   minWords: number
 }
