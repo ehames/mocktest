@@ -1,108 +1,114 @@
 #!/usr/bin/env node
-// Generates missing Part 7 panel illustrations using gpt-image-1.
-// Each prompt has a character description used across all 3 panels for visual consistency.
-// Output: B&W SVG (PNG → sharp grayscale/threshold → potrace vectorisation).
+// Generates Part 7 panel illustrations using the OpenAI Responses API.
+// Sequential multi-turn generation (previous_response_id) maintains character
+// appearance across panels of the same story.
 //
-// Usage:  OPENAI_API_KEY=sk-... npm run generate:part7-images
-// Idempotent: skips files already present in public/images/part7/.
-// To add prompts: append to part7.json then re-run.
+// Usage:
+//   OPENAI_API_KEY=sk-... npm run generate:part7-images
+//   node scripts/generate-part7-images.cjs --dry-run   (prints prompts, no API calls)
+//
+// Idempotent at story level: skips stories where all panel .webp files exist.
+// To regenerate: delete the panel files, then re-run.
 
-const fs = require('fs')
-const path = require('path')
-const sharp = require('sharp')
-const potrace = require('potrace')
+'use strict';
 
-const BANK_PATH = 'public/questions/schools/part7.json'
-const OUT_DIR = 'public/images/part7'
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const { OpenAI } = require('openai');
 
-// Image generation prompt.
-// Character description ensures visual consistency across panels of the same story.
-// High-contrast B&W line art produces clean SVG output via potrace.
-const buildImagePrompt = (character, scene) =>
-  `Black and white pencil sketch illustration. Clean thick outlines, high contrast, ` +
-  `no colour, no shading or gradients, pure white background. Square composition. ` +
-  `No text, no speech bubbles, no labels, no captions.\n\n` +
-  `Main character (keep identical appearance in every panel of this story): ${character}.\n\n` +
-  `Scene: ${scene}\n\n` +
-  `Style: simple children's book line drawing. Face clearly shows the character's emotion. ` +
-  `Show 2–3 everyday objects only. Minimal background detail. Character fills most of the frame.`
+const BANK_PATH = 'public/questions/schools/part7.json';
+const OUT_DIR = 'public/images/part7';
+const DRY_RUN = process.argv.includes('--dry-run');
 
-async function generatePanelB64(character, scene) {
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-image-1',
-      prompt: buildImagePrompt(character, scene),
-      n: 1,
-      size: '1024x1024',
-    }),
-  })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`OpenAI API error ${res.status}: ${body}`)
-  }
-  const data = await res.json()
-  return data.data[0].b64_json
-}
+const STYLE_PREFIX =
+  "B&W pencil sketch illustration, simple children's book line drawing style. " +
+  'Clean outline only, no colour, no shading, no gradients. Pure white background. ' +
+  'Square composition. No text, no speech bubbles, no labels, no captions.';
 
-async function saveAsSVG(b64, destPath) {
-  const pngBuffer = Buffer.from(b64, 'base64')
-  // Convert to pure B&W before vectorising: grayscale then hard threshold
-  const bwBuffer = await sharp(pngBuffer)
-    .grayscale()
-    .threshold(128)
-    .png()
-    .toBuffer()
-
-  const svg = await new Promise((resolve, reject) => {
-    potrace.trace(bwBuffer, {
-      background: '#ffffff',
-      color: '#000000',
-      threshold: potrace.Potrace.THRESHOLD_AUTO,
-    }, (err, svg) => {
-      if (err) reject(err)
-      else resolve(svg)
-    })
-  })
-
-  fs.writeFileSync(destPath, svg, 'utf8')
+function buildPanelPrompt(characters, pic, panelNum, totalPanels) {
+  const charList = characters.map(c => `- ${c.name}: ${c.description}.`).join('\n');
+  return [
+    STYLE_PREFIX,
+    `CHARACTERS IN THIS STORY:\n${charList}`,
+    `PANEL ${panelNum} OF ${totalPanels} — Setting: ${pic.setting}. ` +
+      `Background shows: ${pic.background}. ` +
+      `${pic.scene} and fills most of the frame. ` +
+      `Background is simple but clearly shows the location. ` +
+      `The characters' faces clearly show ${pic.emotion}.`,
+  ].join('\n\n');
 }
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('Error: OPENAI_API_KEY environment variable is required')
-    process.exit(1)
+  if (!DRY_RUN && !process.env.OPENAI_API_KEY) {
+    console.error('Error: OPENAI_API_KEY environment variable is required');
+    process.exit(1);
   }
 
-  const bank = JSON.parse(fs.readFileSync(BANK_PATH, 'utf8'))
-  fs.mkdirSync(OUT_DIR, { recursive: true })
+  const bank = JSON.parse(fs.readFileSync(BANK_PATH, 'utf8'));
+  fs.mkdirSync(OUT_DIR, { recursive: true });
 
-  let generated = 0
-  let skipped = 0
+  const client = DRY_RUN ? null : new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  let generated = 0;
+  let skipped = 0;
 
   for (const prompt of bank.prompts) {
-    console.log(`\nCharacter: ${prompt.character}`)
-    for (const pic of prompt.pics) {
-      const destPath = path.join(OUT_DIR, path.basename(pic.image))
-      if (fs.existsSync(destPath)) {
-        console.log(`  skip  ${path.basename(destPath)}`)
-        skipped++
-        continue
+    const panelPaths = prompt.pics.map(pic =>
+      path.join(OUT_DIR, path.basename(pic.image))
+    );
+    const allExist = panelPaths.every(p => fs.existsSync(p));
+    const slug = path.basename(panelPaths[0]).replace(/_p\d+\.webp$/, '');
+
+    if (allExist) {
+      console.log(`skip  ${slug} (all panels present)`);
+      skipped++;
+      continue;
+    }
+
+    console.log(`\nstory: ${slug}`);
+    console.log(`chars: ${prompt.characters.map(c => c.name).join(', ')}`);
+
+    let previousResponseId = null;
+
+    for (let i = 0; i < prompt.pics.length; i++) {
+      const pic = prompt.pics[i];
+      const destPath = panelPaths[i];
+      const panelPrompt = buildPanelPrompt(prompt.characters, pic, i + 1, prompt.pics.length);
+
+      console.log(`\n  panel ${i + 1}: ${pic.text}`);
+
+      if (DRY_RUN) {
+        console.log('\n--- PROMPT ---');
+        console.log(panelPrompt);
+        console.log('--- END ---\n');
+        continue;
       }
-      console.log(`  gen   ${path.basename(destPath)}`)
-      console.log(`        "${pic.text}"`)
-      const b64 = await generatePanelB64(prompt.character, pic.text)
-      await saveAsSVG(b64, destPath)
-      console.log(`  saved ${path.basename(destPath)}`)
-      generated++
+
+      const params = {
+        model: 'gpt-4o',
+        tools: [{ type: 'image_generation', quality: 'low', size: '1024x1024' }],
+        input: panelPrompt,
+      };
+      if (previousResponseId) params.previous_response_id = previousResponseId;
+
+      const response = await client.responses.create(params);
+      previousResponseId = response.id;
+
+      const imageCall = response.output.find(o => o.type === 'image_generation_call');
+      if (!imageCall) throw new Error(`No image_generation_call in response for panel ${i + 1}`);
+
+      const pngBuffer = Buffer.from(imageCall.result, 'base64');
+      const webpBuffer = await sharp(pngBuffer).webp({ quality: 85 }).toBuffer();
+      fs.writeFileSync(destPath, webpBuffer);
+      console.log(`  saved ${path.basename(destPath)}`);
+      generated++;
     }
   }
 
-  console.log(`\nDone: ${generated} generated, ${skipped} skipped.`)
+  if (!DRY_RUN) {
+    console.log(`\nDone: ${generated} generated, ${skipped} skipped.`);
+  }
 }
 
-main().catch(err => { console.error(err.message); process.exit(1) })
+main().catch(err => { console.error(err.message); process.exit(1); });
