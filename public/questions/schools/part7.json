@@ -60,7 +60,7 @@
           "text": "street / poster / worried",
           "setting": "a street with a brick wall",
           "background": "brick wall, street lamp, pavement",
-          "scene": "Sofia stands alone at the wall — Biscuit is nowhere to be seen. Sofia pins a lost-dog poster (completely blank, no text, no image on it) to the wall",
+          "scene": "Sofia stands alone at the wall — Biscuit is nowhere to be seen. Sofia pins a lost-dog poster to the wall",
           "emotion": "worried and upset",
           "absent": ["Biscuit"],
           "image": "images/part7/lost-dog_p2.webp"

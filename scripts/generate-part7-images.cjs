@@ -26,8 +26,7 @@ const STORY_FILTER = STORY_ARG !== -1 ? parseInt(process.argv[STORY_ARG + 1], 10
 const STYLE_PREFIX =
   "B&W pencil sketch illustration, simple children's book line drawing style. " +
   'Clean outline only, no colour, no shading, no gradients. Pure white background. ' +
-  'Square composition. No text, letters, or writing anywhere in the image — ' +
-  'not on signs, posters, clothing, walls, or any surface. No speech bubbles, no labels, no captions.';
+  'Square composition. No speech bubbles, no labels, no captions.';
 
 function buildPanelPrompt(characters, storyPrompt, pic, panelNum, totalPanels) {
   const charList = characters.map(c => `- ${c.name}: ${c.description}.`).join('\n');
