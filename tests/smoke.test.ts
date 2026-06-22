@@ -178,3 +178,47 @@ test('results screen shows a score', async ({ page }) => {
   await expect(page.getByText('Your results')).toBeVisible()
   await expect(page.locator('text=/\\d+%/')).toBeVisible()
 })
+
+// ── Part 7 image strip ──────────────────────────────────────────────────────
+
+async function goToPart7(page: import('playwright/test').Page) {
+  await page.getByRole('button', { name: 'Start test' }).click()
+  await expect(page.getByText('Part 1 of 7')).toBeVisible({ timeout: 10_000 })
+  for (let i = 0; i < 6; i++) {
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
+  }
+  await expect(page.getByText('Part 7 of 7')).toBeVisible()
+}
+
+test('Part 7 shows image strip with 3 panels', async ({ page }) => {
+  await goToPart7(page)
+  const strip = page.getByTestId('part7-image-strip')
+  await expect(strip).toBeVisible()
+  await expect(strip.locator('img')).toHaveCount(3)
+})
+
+test('Part 7 images load successfully (no fallback text)', async ({ page }) => {
+  await goToPart7(page)
+  const strip = page.getByTestId('part7-image-strip')
+
+  // Wait for all 3 images to finish loading
+  await strip.locator('img').nth(0).waitFor()
+  await strip.locator('img').nth(1).waitFor()
+  await strip.locator('img').nth(2).waitFor()
+
+  // Each img should have loaded (naturalWidth > 0 means the file was fetched)
+  const naturalWidths = await strip.locator('img').evaluateAll(
+    imgs => imgs.map(img => (img as HTMLImageElement).naturalWidth)
+  )
+  for (const w of naturalWidths) {
+    expect(w).toBeGreaterThan(0)
+  }
+})
+
+test('Part 7 panel labels are visible', async ({ page }) => {
+  await goToPart7(page)
+  const strip = page.getByTestId('part7-image-strip')
+  await expect(strip.getByText('Picture 1')).toBeVisible()
+  await expect(strip.getByText('Picture 2')).toBeVisible()
+  await expect(strip.getByText('Picture 3')).toBeVisible()
+})
