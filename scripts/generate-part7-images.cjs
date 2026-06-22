@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // Generates Part 7 panel illustrations using the OpenAI Responses API (gpt-4o + image_generation tool).
-// Character consistency across panels is maintained through rich per-panel text prompts
-// (named characters with physical descriptions + setting/scene/emotion fields).
+// Panels are chained via previous_response_id so each call sees the previous image,
+// maintaining consistent character appearance across all 3 panels of a story.
 //
 // Usage:
 //   OPENAI_API_KEY=sk-... npm run generate:part7-images
 //   OPENAI_API_KEY=sk-... npm run generate:part7-images -- --dry-run   (print prompts only)
 //   OPENAI_API_KEY=sk-... npm run generate:part7-images -- --story 0   (one story by index)
 //
-// Idempotent at panel level: skips panels whose .webp files already exist.
-// To regenerate: delete the relevant .webp file(s), then re-run.
+// Idempotent at story level: skips stories where all 3 panel .webp files exist.
+// To regenerate a story: delete any of its panel .webp files, then re-run.
 
 'use strict';
 
@@ -45,18 +45,21 @@ function buildPanelPrompt(characters, storyPrompt, pic, panelNum, totalPanels) {
   ].join('\n\n');
 }
 
-async function generateB64(prompt) {
+async function generatePanel(promptText, previousResponseId = null) {
+  const body = {
+    model: 'gpt-4o',
+    input: promptText,
+    tools: [{ type: 'image_generation', quality: 'high', size: '1024x1024' }],
+  };
+  if (previousResponseId) body.previous_response_id = previousResponseId;
+
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      input: prompt,
-      tools: [{ type: 'image_generation', quality: 'high', size: '1024x1024' }],
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -65,7 +68,7 @@ async function generateB64(prompt) {
   const data = await res.json();
   const imageCall = data.output.find(o => o.type === 'image_generation_call');
   if (!imageCall) throw new Error('No image_generation_call in response');
-  return imageCall.result;
+  return { b64: imageCall.result, responseId: data.id };
 }
 
 async function main() {
@@ -98,16 +101,11 @@ async function main() {
     console.log(`\nstory: ${slug}`);
     console.log(`chars: ${prompt.characters.map(c => c.name).join(', ')}`);
 
+    let previousResponseId = null;
+
     for (let i = 0; i < prompt.pics.length; i++) {
       const pic = prompt.pics[i];
       const destPath = panelPaths[i];
-
-      if (fs.existsSync(destPath)) {
-        console.log(`  skip  ${path.basename(destPath)} (already exists)`);
-        skipped++;
-        continue;
-      }
-
       const panelPrompt = buildPanelPrompt(prompt.characters, prompt, pic, i + 1, prompt.pics.length);
 
       console.log(`\n  panel ${i + 1}: ${pic.text}`);
@@ -119,7 +117,9 @@ async function main() {
         continue;
       }
 
-      const b64 = await generateB64(panelPrompt);
+      const { b64, responseId } = await generatePanel(panelPrompt, previousResponseId);
+      previousResponseId = responseId;
+
       const pngBuffer = Buffer.from(b64, 'base64');
       const webpBuffer = await sharp(pngBuffer).webp({ quality: 85 }).toBuffer();
       fs.writeFileSync(destPath, webpBuffer);
