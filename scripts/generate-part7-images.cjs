@@ -49,7 +49,7 @@ async function generatePanel(promptText, previousResponseId = null) {
   const body = {
     model: 'gpt-5.5',
     input: promptText,
-    tools: [{ type: 'image_generation', quality: 'high', size: '1024x1024' }],
+    tools: [{ type: 'image_generation', quality: 'medium', size: '1024x1024' }],
   };
   if (previousResponseId) body.previous_response_id = previousResponseId;
 

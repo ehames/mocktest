@@ -77,5 +77,44 @@
       ],
       "minWords": 35
     }
+  ,
+    {
+      "intro": "Look at the three pictures. Write the story shown in the pictures.",
+      "storyArc": "Oliver is nervous at the edge of the pool before his first swimming lesson, then swims across with Coach Maria watching, and finally climbs out feeling proud as Maria gives him a high five.",
+      "characters": [
+        { "name": "Oliver", "description": "a boy of about 11, short blonde hair, blue swimming trunks" },
+        { "name": "Maria", "description": "a woman of about 35, dark hair tied back in a ponytail, red tracksuit, standing at the poolside" }
+      ],
+      "pics": [
+        {
+          "label": "Picture 1",
+          "text": "pool / nervous / jump",
+          "setting": "the edge of an indoor swimming pool",
+          "background": "pool with lane lines, tiled walls, overhead lights",
+          "scene": "Oliver stands at the pool edge looking down at the water, while Maria stands beside him gesturing encouragingly",
+          "emotion": "Oliver nervous and hesitant, Maria calm and encouraging",
+          "image": "images/part7/swim-lesson_p1.webp"
+        },
+        {
+          "label": "Picture 2",
+          "text": "water / swimming / trying",
+          "setting": "inside the swimming pool",
+          "background": "pool lane lines, tiled walls, water surface",
+          "scene": "Oliver swims through the water with his arms stretched out, while Maria walks alongside the pool watching him",
+          "emotion": "Oliver concentrating and determined, Maria proud and watchful",
+          "image": "images/part7/swim-lesson_p2.webp"
+        },
+        {
+          "label": "Picture 3",
+          "text": "pool edge / proud / high five",
+          "setting": "the edge of the indoor swimming pool",
+          "background": "pool tiles, water behind them, overhead lights",
+          "scene": "Oliver climbs out of the pool and gives Maria a high five",
+          "emotion": "both happy and proud",
+          "image": "images/part7/swim-lesson_p3.webp"
+        }
+      ],
+      "minWords": 35
+    }
   ]
 }
