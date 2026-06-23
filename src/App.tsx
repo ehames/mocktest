@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback } from 'react'
+import { useReducer, useEffect, useCallback, useRef } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { reducer, initialState } from './reducer'
 import { useTimer } from './hooks/useTimer'
@@ -57,9 +57,12 @@ export default function App() {
 
   useTimer(state.started && !state.submitted, handleTick)
 
+  const lastPart7Ref = useRef(state.activeTest?.part7 ?? null)
+
   const handleStart = useCallback(async () => {
     try {
-      const test = await loadBanks()
+      const test = await loadBanks(lastPart7Ref.current)
+      lastPart7Ref.current = test.part7
       dispatch({ type: 'SET_TEST', test, secondsLeft: DURATION_MINUTES_DEFAULT * 60 })
       dispatch({ type: 'START' })
     } catch (e) {

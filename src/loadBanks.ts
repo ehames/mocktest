@@ -1,9 +1,14 @@
-import type { ActiveTest, Part1Bank, Part2Bank, Part3Bank, Part4Bank, Part5Bank, Part6Bank, Part7Bank } from './types'
+import type { ActiveTest, Part1Bank, Part2Bank, Part3Bank, Part4Bank, Part5Bank, Part6Bank, Part7Bank, Part7Prompt } from './types'
 import { BASE } from './constants'
 import { prefetchImages, schedulePrefetch } from './prefetch'
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function pickExcluding(arr: Part7Prompt[], exclude: Part7Prompt | null): Part7Prompt {
+  const candidates = exclude ? arr.filter(p => p.intro !== exclude.intro) : arr
+  return pick(candidates.length > 0 ? candidates : arr)
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -21,7 +26,7 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export async function loadBanks(): Promise<ActiveTest> {
+export async function loadBanks(prevPart7: Part7Prompt | null = null): Promise<ActiveTest> {
   const [b1, b2, b3, b4, b5, b6, b7] = await Promise.all([
     fetchJSON<Part1Bank>('part1.json'),
     fetchJSON<Part2Bank>('part2.json'),
@@ -32,7 +37,7 @@ export async function loadBanks(): Promise<ActiveTest> {
     fetchJSON<Part7Bank>('part7.json'),
   ])
 
-  const selectedPart7 = pick(b7.prompts)
+  const selectedPart7 = pickExcluding(b7.prompts, prevPart7)
 
   // Always prefetch the 3 selected images — test must work offline from the start
   prefetchImages(selectedPart7.pics.map(p => p.image))
