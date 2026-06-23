@@ -70,7 +70,7 @@ State is persisted to `localStorage` key `a2key_v1` on every dispatch. Restored 
 | `part4.json` | `{ sets: Part4Set[] }` | Pick 1 random set |
 | `part5.json` | `{ sets: Part5Set[] }` | Pick 1 random set |
 | `part6.json` | `{ prompts: Part6Prompt[] }` | Pick 1 random prompt |
-| `part7.json` | `{ prompts: Part7Prompt[] }` | Pick 1 random prompt |
+| `part7.json` | `{ prompts: Part7Prompt[] }` | Pick 1 random prompt, never the same as the previous run |
 
 To add questions: append to the relevant JSON array and deploy. No code changes needed.
 
@@ -102,6 +102,28 @@ Defined as CSS variables in `src/index.css`:
 | `--outer-bg` | `#15263b` | Letterbox behind phone column |
 
 Fonts: `Libre Franklin` (UI), `Source Serif 4` (passages and writing). Both loaded from Google Fonts in `index.html`.
+
+## Image generation (Part 7)
+
+Part 7 images live in `public/images/part7/` as 512×512 WebP files. Generated offline via:
+
+```bash
+npm run generate:part7-images -- [options]
+```
+
+| Flag | Values | Default |
+|---|---|---|
+| `--engine` | `openai` \| `imagen` | `openai` |
+| `--quality` | `low` \| `med` \| `high` | `high` |
+| `--story N` | 0-based index | all stories |
+| `--panel N` | 1-indexed panel | all panels |
+| `--dry-run` | — | off |
+
+**OpenAI** (`OPENAI_API_KEY`): uses `gpt-5.5` + `image_generation` tool; panels chained via `previous_response_id` for character consistency. Writes `{slug}_meta.json` sidecars to store response IDs.
+
+**Imagen** (`GOOGLE_API_KEY`): uses Gemini `generateContent` API; panels generated independently. Quality map: `low` → `gemini-2.5-flash-image`, `med` → `nano-banana-pro-preview`, `high` → `gemini-3-pro-image`.
+
+Prompt building and helpers live in `scripts/part7-helpers.cjs`. Tests: `npm run test:script`.
 
 ## Browser testing (Playwright)
 
