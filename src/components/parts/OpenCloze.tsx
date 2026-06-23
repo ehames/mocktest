@@ -6,10 +6,9 @@ interface Props {
   textAnswers: Record<number, string>
   review: boolean
   onsetText: (gapIndex: number, value: string) => void
-  baseLabel: number
 }
 
-export default function OpenCloze({ set, textAnswers, review, onsetText, baseLabel }: Props) {
+export default function OpenCloze({ set, textAnswers, review, onsetText }: Props) {
   return (
     <>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, marginBottom: 20 }}>

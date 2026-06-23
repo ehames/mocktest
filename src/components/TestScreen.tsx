@@ -120,7 +120,6 @@ export default function TestScreen({ step, state, dispatch }: Props) {
             textAnswers={text}
             review={review}
             onsetText={(gi, val) => dispatch({ type: 'SET_TEXT', gapIndex: gi, value: val })}
-            baseLabel={25}
           />
         )}
 
