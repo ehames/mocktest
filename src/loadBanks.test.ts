@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { vi, test, expect, describe, beforeEach, afterEach } from 'vitest'
 import { loadBanks } from './loadBanks'
 import { prefetchImages, schedulePrefetch } from './prefetch'
