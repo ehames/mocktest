@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import type { Part6Prompt, Part7Prompt, PicCard as PicCardType } from '../../types'
 import { wc } from '../../scoring'
+import SplitPanel from '../ui/SplitPanel'
 
 interface Part6Props {
   prompt: Part6Prompt
   value: string
   review: boolean
   onChange: (v: string) => void
+  isDesktop?: boolean
 }
 
 interface Part7Props {
@@ -14,6 +16,7 @@ interface Part7Props {
   value: string
   review: boolean
   onChange: (v: string) => void
+  isDesktop?: boolean
 }
 
 function WordCountIndicator({ count, min }: { count: number; min: number }) {
@@ -113,28 +116,52 @@ const textareaStyle = (review: boolean): React.CSSProperties => ({
   background: review ? 'var(--instr-bg)' : 'var(--surface)',
 })
 
-export function Part6Writing({ prompt, value, review, onChange }: Part6Props) {
+export function Part6Writing({ prompt, value, review, onChange, isDesktop }: Part6Props) {
   const count = wc(value)
+
+  const promptCard = (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+      <div style={{ font: "500 15px/1.5 'Libre Franklin'", color: 'var(--ink)', marginBottom: 13 }}>{prompt.intro}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {prompt.bullets.map((b, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', font: "400 15px/1.45 'Libre Franklin'", color: 'var(--instr-ink)' }}>
+            <span style={{ color: 'var(--navy)', fontWeight: 800, flexShrink: 0 }}>•</span>
+            <span>{b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  if (isDesktop) {
+    const desktopRightPanel = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          readOnly={review}
+          placeholder="Write your answer here..."
+          aria-label="Part 6 writing answer"
+          spellCheck={false}
+          style={{ ...textareaStyle(review), minHeight: 260, resize: 'vertical' }}
+        />
+        <WordCountIndicator count={count} min={prompt.minWords} />
+        {review && prompt.sampleResponse && <SampleAnswer text={prompt.sampleResponse} />}
+      </div>
+    )
+    return <SplitPanel left={promptCard} right={desktopRightPanel} defaultRatio={0.4} />
+  }
+
   return (
     <>
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, marginBottom: 16 }}>
-        <div style={{ font: "500 15px/1.5 'Libre Franklin'", color: 'var(--ink)', marginBottom: 13 }}>{prompt.intro}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {prompt.bullets.map((b, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', font: "400 15px/1.45 'Libre Franklin'", color: 'var(--instr-ink)' }}>
-              <span style={{ color: 'var(--navy)', fontWeight: 800, flexShrink: 0 }}>•</span>
-              <span>{b}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <div style={{ marginBottom: 16 }}>{promptCard}</div>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         readOnly={review}
         placeholder="Write your answer here..."
         aria-label="Part 6 writing answer"
-        style={textareaStyle(review)}
+        style={{ ...textareaStyle(review), minHeight: 210 }}
       />
       <WordCountIndicator count={count} min={prompt.minWords} />
       {review && prompt.sampleResponse && <SampleAnswer text={prompt.sampleResponse} />}
@@ -142,26 +169,60 @@ export function Part6Writing({ prompt, value, review, onChange }: Part6Props) {
   )
 }
 
-export function Part7Writing({ prompt, value, review, onChange }: Part7Props) {
+export function Part7Writing({ prompt, value, review, onChange, isDesktop }: Part7Props) {
   const count = wc(value)
-  return (
-    <>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ font: "500 15px/1.5 'Libre Franklin'", color: 'var(--ink)', marginBottom: 13 }}>{prompt.intro}</div>
+
+  if (isDesktop) {
+    return (
+      <>
+        <div style={{ font: "500 15px/1.5 'Libre Franklin'", color: 'var(--ink)', marginBottom: 14 }}>
+          {prompt.intro}
+        </div>
         <div
           data-testid="part7-image-strip"
-          style={{
-            display: 'flex',
-            gap: 10,
-            overflowX: 'auto',
-            scrollSnapType: 'x mandatory',
-            paddingBottom: 4,
-          }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}
         >
           {prompt.pics.map((pic, i) => (
             <PicCard key={i} pic={pic} eager={i === 0} />
           ))}
         </div>
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          readOnly={review}
+          placeholder="Write your answer here..."
+          aria-label="Part 7 writing answer"
+          spellCheck={false}
+          style={{ ...textareaStyle(review), minHeight: 200 }}
+        />
+        <WordCountIndicator count={count} min={prompt.minWords} />
+        {review && prompt.sampleResponse && <SampleAnswer text={prompt.sampleResponse} />}
+      </>
+    )
+  }
+
+  const mobileImageStrip = (
+    <div
+      data-testid="part7-image-strip"
+      style={{
+        display: 'flex',
+        gap: 10,
+        overflowX: 'auto',
+        scrollSnapType: 'x mandatory',
+        paddingBottom: 4,
+      }}
+    >
+      {prompt.pics.map((pic, i) => (
+        <PicCard key={i} pic={pic} eager={i === 0} />
+      ))}
+    </div>
+  )
+
+  return (
+    <>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ font: "500 15px/1.5 'Libre Franklin'", color: 'var(--ink)', marginBottom: 13 }}>{prompt.intro}</div>
+        {mobileImageStrip}
       </div>
       <textarea
         value={value}
@@ -169,7 +230,7 @@ export function Part7Writing({ prompt, value, review, onChange }: Part7Props) {
         readOnly={review}
         placeholder="Write your answer here..."
         aria-label="Part 7 writing answer"
-        style={textareaStyle(review)}
+        style={{ ...textareaStyle(review), minHeight: 210 }}
       />
       <WordCountIndicator count={count} min={prompt.minWords} />
       {review && prompt.sampleResponse && <SampleAnswer text={prompt.sampleResponse} />}

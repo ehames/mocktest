@@ -14,13 +14,13 @@ export function getBand(pct: number): string {
 
 export const PART_META = [
   null,
-  { label: 'Part 1', subtitle: 'Multiple choice · short texts',   instr: 'For each question, choose the correct answer: A, B or C.' },
-  { label: 'Part 2', subtitle: 'Multiple matching',               instr: 'Three students write about after-school clubs. For each question, choose A, B or C.' },
-  { label: 'Part 3', subtitle: 'Multiple choice · longer text',   instr: 'Read the text. For each question, choose the correct answer: A, B or C.' },
-  { label: 'Part 4', subtitle: 'Multiple-choice cloze',           instr: 'Read the text. Choose the best word (A, B or C) for each gap.' },
-  { label: 'Part 5', subtitle: 'Open cloze',                      instr: 'Read the text. Write one word in each gap.' },
-  { label: 'Part 6', subtitle: 'Guided writing',                  instr: 'Write your email below. Write at least 25 words.' },
-  { label: 'Part 7', subtitle: 'Story writing',                   instr: 'Write the story shown in the pictures. Write at least 35 words.' },
+  { label: 'Part 1', subtitle: 'Multiple choice · short texts',   instr: 'For each question, choose the correct answer.' },
+  { label: 'Part 2', subtitle: 'Multiple matching',               instr: 'For each question, choose the correct answer.' },
+  { label: 'Part 3', subtitle: 'Multiple choice · longer text',   instr: 'For each question, choose the correct answer.' },
+  { label: 'Part 4', subtitle: 'Multiple-choice cloze',           instr: 'For each question, choose the correct answer.' },
+  { label: 'Part 5', subtitle: 'Open cloze',                      instr: 'For each question, write the correct answer. Write one word for each gap.' },
+  { label: 'Part 6', subtitle: 'Guided writing',                  instr: 'Write your email in the box. Write 25 words or more.' },
+  { label: 'Part 7', subtitle: 'Story writing',                   instr: 'Look at the three pictures. Write the story shown in the pictures. Write 35 words or more.' },
 ] as const
 
 export const PART_SCORE_RANGES = [

@@ -1,5 +1,4 @@
-import type { Part5Set } from '../../types'
-import RationaleToggle from '../ui/RationaleToggle'
+import type { Part5Set, OpenClozeGap } from '../../types'
 
 interface Props {
   set: Part5Set
@@ -8,50 +7,61 @@ interface Props {
   onsetText: (gapIndex: number, value: string) => void
 }
 
+function renderParagraph(
+  text: string,
+  gaps: OpenClozeGap[],
+  textAnswers: Record<number, string>,
+  review: boolean,
+  onsetText: (gapIndex: number, value: string) => void
+): React.ReactNode[] {
+  const parts = text.split(/((?:\(\d+\)) ___)/)
+  return parts.map((part, idx) => {
+    const match = part.match(/^\((\d+)\) ___$/)
+    if (match) {
+      const gapNum = parseInt(match[1])
+      const gi = gapNum - 1
+      const g = gaps[gi]
+      if (!g) return <span key={idx}>{part}</span>
+      const val = textAnswers[gi] ?? ''
+      const ok = g.accept.includes(val.trim().toLowerCase())
+
+      if (review) {
+        return (
+          <span key={idx} style={{ display: 'inline-block', margin: '0 3px', padding: '2px 8px', border: `1.5px solid ${ok ? 'var(--green)' : 'var(--red)'}`, borderRadius: 6, background: ok ? 'var(--green-bg)' : 'var(--red-bg)', fontSize: 14, verticalAlign: 'baseline', fontFamily: "'Libre Franklin', sans-serif" }}>
+            <span style={{ color: ok ? 'var(--green)' : 'var(--red)' }}>{val || '—'}</span>
+            {!ok && <span style={{ color: 'var(--green)', marginLeft: 4 }}>→ {g.accept[0]}</span>}
+          </span>
+        )
+      }
+
+      return (
+        <input
+          key={idx}
+          id={`q-${gi + 24}`}
+          type="text"
+          value={val}
+          onChange={e => onsetText(gi, e.target.value)}
+          placeholder={String(gapNum)}
+          aria-label={`Gap ${gapNum}`}
+          spellCheck={false}
+          className="gap-inline"
+          style={{ width: 90 }}
+        />
+      )
+    }
+    return <span key={idx}>{part}</span>
+  })
+}
+
 export default function OpenCloze({ set, textAnswers, review, onsetText }: Props) {
   return (
-    <>
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, marginBottom: 20 }}>
-        <div style={{ font: "700 18px 'Libre Franklin'", color: 'var(--navy)', marginBottom: 11 }}>{set.title}</div>
-        {set.paragraphs.map((p, i) => (
-          <p key={i} className="serif" style={{ fontSize: 16, lineHeight: 1.62, color: 'var(--passage-ink)', margin: '0 0 12px' }}>{p}</p>
-        ))}
-      </div>
-
-      {set.gaps.map((g, i) => {
-        const val = textAnswers[i] || ''
-        const ok = g.accept.includes(val.trim().toLowerCase())
-        const borderColor = review ? (ok ? 'var(--green)' : 'var(--red)') : 'var(--input-border)'
-        const bgColor = review ? (ok ? 'var(--green-bg)' : 'var(--red-bg)') : 'var(--surface)'
-
-        return (
-          <div key={i} style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', background: 'var(--navy)', color: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 13px 'Libre Franklin'" }}>
-                {i + 1}
-              </div>
-              <input
-                value={val}
-                onChange={e => onsetText(i, e.target.value)}
-                readOnly={review}
-                placeholder="one word"
-                aria-label={`Gap ${i + 1}`}
-                style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${borderColor}`, background: bgColor, font: "500 16px 'Libre Franklin'", color: 'var(--ink)', minWidth: 0 }}
-              />
-              {review && (
-                <span style={{ flexShrink: 0, font: "700 14px 'Libre Franklin'", color: ok ? 'var(--green)' : 'var(--red)' }}>
-                  {ok ? '✓' : `✗ ${g.accept[0]}`}
-                </span>
-              )}
-            </div>
-            {review && g.rationale && (
-              <div style={{ paddingLeft: 42 }}>
-                <RationaleToggle rationale={g.rationale} />
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+      <div style={{ font: "700 18px 'Libre Franklin'", color: 'var(--navy)', marginBottom: 11 }}>{set.title}</div>
+      {set.paragraphs.map((p, i) => (
+        <p key={i} className="serif" style={{ fontSize: 16, lineHeight: 1.8, color: 'var(--passage-ink)', margin: '0 0 14px' }}>
+          {renderParagraph(p, set.gaps, textAnswers, review, onsetText)}
+        </p>
+      ))}
+    </div>
   )
 }

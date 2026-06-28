@@ -2,6 +2,7 @@ import { useReducer, useEffect, useCallback, useRef } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { reducer, initialState } from './reducer'
 import { useTimer } from './hooks/useTimer'
+import { useIsDesktop } from './hooks/useIsDesktop'
 import { loadBanks } from './loadBanks'
 import { LS_KEY, DURATION_MINUTES_DEFAULT, BASE } from './constants'
 import type { AppState, Action } from './types'
@@ -27,6 +28,7 @@ function writeLS(state: AppState) {
 }
 
 export default function App() {
+  const isDesktop = useIsDesktop()
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
 
   const [state, dispatch] = useReducer(reducer, initialState, () => {
@@ -57,6 +59,16 @@ export default function App() {
 
   useTimer(state.started && !state.submitted, handleTick)
 
+  useEffect(() => {
+    if (!state.started || state.submitted) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [state.started, state.submitted])
+
   const lastPart7Ref = useRef(state.activeTest?.part7 ?? null)
 
   const handleStart = useCallback(async () => {
@@ -73,8 +85,8 @@ export default function App() {
   const d = (a: Action) => dispatch(a)
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'stretch', background: 'var(--outer-bg)' }}>
-      <main style={{ width: '100%', maxWidth: 440, height: '100vh', background: 'var(--page-bg)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: 'var(--shadow-column)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'stretch', background: isDesktop ? 'var(--page-bg)' : 'var(--outer-bg)' }}>
+      <main style={{ width: '100%', maxWidth: isDesktop ? 'none' : 440, height: '100vh', background: 'var(--page-bg)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: isDesktop ? 'none' : 'var(--shadow-column)', overflow: 'hidden' }}>
         {state.step === 0 && (
           <IntroScreen
             name={state.name}
@@ -88,6 +100,7 @@ export default function App() {
             step={state.step as 1|2|3|4|5|6|7}
             state={state}
             dispatch={d}
+            isDesktop={isDesktop}
           />
         )}
         {state.step === 8 && state.activeTest && (

@@ -1,6 +1,7 @@
 import type { Part2Set } from '../../types'
 import OptionRow from '../ui/OptionRow'
 import RationaleToggle from '../ui/RationaleToggle'
+import SplitPanel from '../ui/SplitPanel'
 
 interface Props {
   set: Part2Set
@@ -8,10 +9,11 @@ interface Props {
   review: boolean
   onChoose: (qIndex: number, option: number) => void
   baseIndex: number
+  isDesktop: boolean
 }
 
-export default function MatchingPart({ set, answers, review, onChoose, baseIndex }: Props) {
-  return (
+export default function MatchingPart({ set, answers, review, onChoose, baseIndex, isDesktop }: Props) {
+  const personCards = (
     <>
       {set.people.map((p, pi) => (
         <div key={pi} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '15px 16px', marginBottom: 11 }}>
@@ -22,14 +24,16 @@ export default function MatchingPart({ set, answers, review, onChoose, baseIndex
           <div className="serif" style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--passage-ink)' }}>{p.text}</div>
         </div>
       ))}
+    </>
+  )
 
-      <div style={{ height: 8 }} />
-
+  const questionCards = (
+    <>
       {set.questions.map((q, qi) => {
         const qIndex = baseIndex + qi
         const sel = answers[qIndex]
         return (
-          <div key={qi} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 15px', marginBottom: 11 }}>
+          <div key={qi} id={`q-${qIndex}`} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 15px', marginBottom: 11 }}>
             <div style={{ font: "600 15px/1.4 'Libre Franklin'", color: 'var(--ink)', marginBottom: 11 }}>{qi + 1}. {q.prompt}</div>
             <div style={{ display: 'flex', gap: 10 }}>
               {([0, 1, 2] as const).map(oi => {
@@ -57,6 +61,18 @@ export default function MatchingPart({ set, answers, review, onChoose, baseIndex
           </div>
         )
       })}
+    </>
+  )
+
+  if (isDesktop) {
+    return <SplitPanel left={personCards} right={questionCards} />
+  }
+
+  return (
+    <>
+      {personCards}
+      <div style={{ height: 8 }} />
+      {questionCards}
     </>
   )
 }

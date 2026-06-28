@@ -15,7 +15,7 @@ export default function ShortMC({ items, answers, review, onChoose }: Props) {
       {items.map((item, i) => {
         const sel = answers[i]
         return (
-          <div key={i} style={{ marginBottom: 26 }} className="animate-pop">
+          <div key={i} id={`q-${i}`} style={{ marginBottom: 26 }} className="animate-pop">
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
               <div style={{ display: 'inline-block', background: 'var(--navy)', color: 'var(--surface)', font: "700 10px 'Libre Franklin'", letterSpacing: '.12em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 5, marginBottom: 8 }}>{item.tag}</div>
               <div className="serif" style={{ fontSize: 16, lineHeight: 1.55, color: 'var(--passage-ink)' }}>{item.text}</div>

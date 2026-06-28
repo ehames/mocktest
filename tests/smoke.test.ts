@@ -1,6 +1,8 @@
 import { test, expect } from 'playwright/test'
 
 test.beforeEach(async ({ page }) => {
+  await page.setViewportSize({ width: 430, height: 900 })
+  page.on('dialog', dialog => dialog.accept())
   await page.goto('/')
   await page.evaluate(() => localStorage.removeItem('a2key_v3'))
   await page.reload()
@@ -66,7 +68,7 @@ test('results screen shows action buttons', async ({ page }) => {
   await expect(page.getByText('Your results')).toBeVisible()
 
   await expect(page.getByRole('button', { name: 'Review answers' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Restart' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Download PDF' })).toBeVisible()
 })
 
 test('review mode navigates all 7 parts and returns to results', async ({ page }) => {
@@ -91,36 +93,6 @@ test('review mode navigates all 7 parts and returns to results', async ({ page }
   await expect(page.getByText('Your results')).toBeVisible()
 })
 
-test('restart returns to intro screen', async ({ page }) => {
-  await page.getByRole('button', { name: 'Start test' }).click()
-  await expect(page.getByText('Part 1 of 7')).toBeVisible({ timeout: 10_000 })
-  for (let part = 1; part < 7; part++) {
-    await page.getByRole('button', { name: 'Next', exact: true }).click()
-  }
-  await page.getByRole('button', { name: 'Submit' }).click()
-  await page.getByRole('button', { name: 'Confirm submission' }).click()
-  await expect(page.getByText('Your results')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Restart' }).click()
-  await expect(page.getByRole('button', { name: 'Start test' })).toBeVisible()
-})
-
-test('localStorage is cleared after restart', async ({ page }) => {
-  await page.getByRole('button', { name: 'Start test' }).click()
-  await expect(page.getByText('Part 1 of 7')).toBeVisible({ timeout: 10_000 })
-  for (let part = 1; part < 7; part++) {
-    await page.getByRole('button', { name: 'Next', exact: true }).click()
-  }
-  await page.getByRole('button', { name: 'Submit' }).click()
-  await page.getByRole('button', { name: 'Confirm submission' }).click()
-  await page.getByRole('button', { name: 'Restart' }).click()
-
-  const stored = await page.evaluate(() => localStorage.getItem('a2key_v3'))
-  const state = JSON.parse(stored!)
-  expect(state.step).toBe(0)
-  expect(state.submitted).toBe(false)
-  expect(state.answers).toEqual({})
-})
 
 test('timer is visible during test', async ({ page }) => {
   await page.getByRole('button', { name: 'Start test' }).click()

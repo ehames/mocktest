@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import type { AppState, Action } from '../types'
 import { computeResults } from '../scoring'
 import { openPdf } from '../pdfExport'
+
+const TEACHER_CODE = '1235'
 
 interface Props {
   state: AppState
@@ -8,8 +11,27 @@ interface Props {
 }
 
 export default function ResultsScreen({ state, dispatch }: Props) {
+  const [showPin, setShowPin] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState(false)
+
   const { activeTest, answers, text } = state
   if (!activeTest) return null
+
+  function handleRestartClick() {
+    setShowPin(true)
+    setPin('')
+    setPinError(false)
+  }
+
+  function handlePinConfirm() {
+    if (pin === TEACHER_CODE) {
+      dispatch({ type: 'RESTART' })
+    } else {
+      setPinError(true)
+      setPin('')
+    }
+  }
 
   const r = computeResults(activeTest, answers, text)
   const ringDeg = r.pct * 3.6
@@ -71,14 +93,77 @@ export default function ResultsScreen({ state, dispatch }: Props) {
           >
             Download PDF
           </button>
+        </div>
+
+        {/* Restart (teacher-only, PIN-protected) */}
+        <div style={{ marginTop: 16 }}>
           <button
-            onClick={() => dispatch({ type: 'RESTART' })}
-            className="btn-primary"
-            style={{ flex: 1, background: 'var(--navy)', color: 'var(--surface)', border: 'none', borderRadius: 12, padding: 15, font: "700 14px 'Libre Franklin'", cursor: 'pointer', boxShadow: 'var(--shadow-cta)' }}
+            onClick={handleRestartClick}
+            style={{ width: '100%', background: 'transparent', color: 'var(--muted)', border: '1.5px dashed var(--border)', borderRadius: 12, padding: '11px 15px', font: "600 13px 'Libre Franklin'", cursor: 'pointer' }}
           >
-            Restart
+            Restart exam
           </button>
         </div>
+
+        {/* PIN modal */}
+        {showPin && (
+          <div
+            onClick={() => setShowPin(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, width: 320, maxWidth: 'calc(100vw - 40px)', boxShadow: '0 8px 40px rgba(0,0,0,0.25)' }}
+            >
+              <div style={{ font: "800 17px 'Libre Franklin'", color: 'var(--navy)', marginBottom: 6 }}>Restart exam</div>
+              <div style={{ font: "400 13px 'Libre Franklin'", color: 'var(--muted)', marginBottom: 18 }}>Enter the teacher code to start a new test.</div>
+              <input
+                type="password"
+                value={pin}
+                onChange={e => { setPin(e.target.value); setPinError(false) }}
+                onKeyDown={e => { if (e.key === 'Enter') handlePinConfirm() }}
+                placeholder="Teacher's code"
+                maxLength={6}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: 10,
+                  border: `1.5px solid ${pinError ? 'var(--red)' : 'var(--input-border)'}`,
+                  font: "400 18px 'Libre Franklin'",
+                  color: 'var(--ink)',
+                  background: 'var(--page-bg)',
+                  marginBottom: 6,
+                  outline: 'none',
+                  letterSpacing: '0.25em',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {pinError && (
+                <div style={{ font: "600 12px 'Libre Franklin'", color: 'var(--red)', marginBottom: 12 }}>
+                  Incorrect code — try again
+                </div>
+              )}
+              {!pinError && <div style={{ height: 12 }} />}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={handlePinConfirm}
+                  className="btn-primary"
+                  style={{ flex: 1, background: 'var(--navy)', color: 'var(--surface)', border: 'none', borderRadius: 10, padding: '13px 0', font: "700 14px 'Libre Franklin'", cursor: 'pointer' }}
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setShowPin(false)}
+                  className="btn-ghost"
+                  style={{ flex: 1, background: 'var(--surface)', color: 'var(--navy)', border: '1.5px solid var(--input-border)', borderRadius: 10, padding: '13px 0', font: "600 14px 'Libre Franklin'", cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
