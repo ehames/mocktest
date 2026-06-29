@@ -86,7 +86,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'stretch', background: isDesktop ? 'var(--page-bg)' : 'var(--outer-bg)' }}>
-      <main style={{ width: '100%', maxWidth: isDesktop ? 'none' : 440, height: '100vh', background: 'var(--page-bg)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: isDesktop ? 'none' : 'var(--shadow-column)', overflow: 'hidden' }}>
+      <main className="app-main" style={{ width: '100%', maxWidth: isDesktop ? 1440 : 440, background: 'var(--page-bg)', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: isDesktop ? 'none' : 'var(--shadow-column)', overflow: 'hidden' }}>
         {state.step === 0 && (
           <IntroScreen
             name={state.name}

@@ -43,6 +43,33 @@ html, body, #root {
   height: 100%;
 }
 
+/* svh = Small Viewport Height — stays stable as mobile browser chrome shows/hides.
+   Falls back to vh in older browsers (acceptable — just the iOS jitter quirk). */
+.app-main {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* Test header: safe-area-inset-top clears the notch on viewport-fit:cover devices */
+.test-header {
+  padding: max(16px, calc(14px + env(safe-area-inset-top, 0px))) 18px 14px;
+}
+
+/* Mobile footer: safe-area-inset-bottom clears the home indicator (iPhone X+) */
+.mobile-footer {
+  padding: 12px 16px max(12px, calc(10px + env(safe-area-inset-bottom, 0px)));
+}
+
+/* Compact header in mobile landscape — (pointer:coarse) targets touch devices only */
+@media (max-height: 450px) and (pointer: coarse) {
+  .test-header {
+    padding: max(6px, calc(4px + env(safe-area-inset-top, 0px))) 18px 5px;
+  }
+  .test-header-subtitle {
+    display: none;
+  }
+}
+
 body {
   background: var(--outer-bg);
   font-family: 'Libre Franklin', -apple-system, BlinkMacSystemFont, sans-serif;

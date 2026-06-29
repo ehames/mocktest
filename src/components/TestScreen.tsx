@@ -144,11 +144,11 @@ export default function TestScreen({ step, state, dispatch, isDesktop }: Props) 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Header */}
-      <div style={{ background: 'var(--navy)', color: 'var(--surface)', padding: '16px 18px 14px', flexShrink: 0 }}>
+      <div className="test-header" style={{ background: 'var(--navy)', color: 'var(--surface)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ font: "800 19px 'Libre Franklin'", lineHeight: 1.1 }}>{meta.label}</div>
-            <div style={{ font: "500 12px 'Libre Franklin'", color: 'var(--header-muted)', marginTop: 3, letterSpacing: '.02em' }}>{meta.subtitle}</div>
+            <div className="test-header-subtitle" style={{ font: "500 12px 'Libre Franklin'", color: 'var(--header-muted)', marginTop: 3, letterSpacing: '.02em' }}>{meta.subtitle}</div>
           </div>
           <TimerPill secondsLeft={state.secondsLeft} />
         </div>
@@ -200,7 +200,7 @@ export default function TestScreen({ step, state, dispatch, isDesktop }: Props) 
           dispatch={dispatch}
         />
       ) : (
-        <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <div className="mobile-footer" style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           {canBack && (
             <button
               onClick={handleBack}
